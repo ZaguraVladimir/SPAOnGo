@@ -2,37 +2,68 @@ package models
 
 import (
 	"database/sql"
-
-	_ "github.com/mattn/go-sqlite3"
 )
 
-// Task is a struct containing Task data
+var db *sql.DB
+
+// Task это структура с данными задачи
 type Task struct {
 	ID   int    `json:"id"`
 	Name string `json:"name"`
 }
 
-// TaskCollection is collection of Tasks
+// TaskCollection это список задач
 type TaskCollection struct {
 	Tasks []Task `json:"items"`
 }
 
-// GetTasks from the DB
-func GetTasks(db *sql.DB) TaskCollection {
-	sql := "SELECT * FROM tasks"
-	rows, err := db.Query(sql)
-	// Exit if the SQL doesn't work for some reason
+func InitDB(filepath string) {
+	db, err := sql.Open("sqlite3", filepath)
+
+	// Here we check for any db errors then exit
 	if err != nil {
 		panic(err)
 	}
-	// make sure to cleanup when the program exits
+
+	// If we don't get any errors but somehow still don't get a db connection
+	// we exit as well
+	if db == nil {
+		panic("db nil")
+	}
+	migrate()
+}
+
+func migrate() {
+	sql := `
+	CREATE TABLE IF NOT EXISTS tasks(
+		id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,
+		name VARCHAR NOT NULL
+	);
+	`
+
+	_, err := db.Exec(sql)
+	// Exit if something goes wrong with our SQL statement above
+	if err != nil {
+		panic(err)
+	}
+}
+
+// GetTasks from the DB
+func GetTasks() TaskCollection {
+	sql := "SELECT * FROM tasks"
+	rows, err := db.Query(sql)
+	// выходим, если SQL не сработал по каким-то причинам
+	if err != nil {
+		panic(err)
+	}
+	// убедимся, что всё закроется при выходе из программы
 	defer rows.Close()
 
 	result := TaskCollection{}
 	for rows.Next() {
 		task := Task{}
 		err2 := rows.Scan(&task.ID, &task.Name)
-		// Exit if we get an error
+		// выход при ошибке
 		if err2 != nil {
 			panic(err2)
 		}
@@ -42,21 +73,21 @@ func GetTasks(db *sql.DB) TaskCollection {
 }
 
 // PutTask into DB
-func PutTask(db *sql.DB, name string) (int64, error) {
+func PutTask(name string) (int64, error) {
 	sql := "INSERT INTO tasks(name) VALUES(?)"
 
-	// Create a prepared SQL statement
+	// выполним SQL запрос
 	stmt, err := db.Prepare(sql)
-	// Exit if we get an error
+	// выход при ошибке
 	if err != nil {
 		panic(err)
 	}
-	// Make sure to cleanup after the program exits
+	// убедимся, что всё закроется при выходе из программы
 	defer stmt.Close()
 
-	// Replace the '?' in our prepared statement with 'name'
+	// заменим символ '?' в запросе на 'name'
 	result, err2 := stmt.Exec(name)
-	// Exit if we get an error
+	// выход при ошибке
 	if err2 != nil {
 		panic(err2)
 	}
@@ -65,19 +96,19 @@ func PutTask(db *sql.DB, name string) (int64, error) {
 }
 
 // DeleteTask from DB
-func DeleteTask(db *sql.DB, id int) (int64, error) {
+func DeleteTask(id int) (int64, error) {
 	sql := "DELETE FROM tasks WHERE id = ?"
 
-	// Create a prepared SQL statement
+	// выполним SQL запрос
 	stmt, err := db.Prepare(sql)
-	// Exit if we get an error
+	// выход при ошибке
 	if err != nil {
 		panic(err)
 	}
 
-	// Replace the '?' in our prepared statement with 'id'
+	// заменим символ '?' в запросе на 'id'
 	result, err2 := stmt.Exec(id)
-	// Exit if we get an error
+	// выход при ошибке
 	if err2 != nil {
 		panic(err2)
 	}

@@ -55,9 +55,9 @@
                     tasks: [],
                     newTask: {}
                 },
-                // This is run whenever the page is loaded to make sure we have a current task list
+                // запускаем при загрузке страницы, чтобы у нас был актуальный список всех задач
                 created: function() {
-                    // Use the vue-resource $http client to fetch data from the /tasks route
+                    // используем $http-клиента из vue-resource для получения данных от роута /tasks
                     this.$http.get('/tasks').then(function(response) {
                         this.tasks = response.data.items ? response.data.items : []
                     })
@@ -68,7 +68,7 @@
                             this.newTask = {}
                             return
                         }
-                        // Post the new task to the /tasks route using the $http client
+                        // передаём новую задачу роуту /tasks с помощью $http клиента
                         this.$http.put('/tasks', this.newTask).success(function(response) {
                             this.newTask.id = response.created
                             this.tasks.push(this.newTask)
@@ -80,7 +80,7 @@
                         });
                     },
                     deleteTask: function(index) {
-                        // Use the $http client to delete a task by its id
+                        // используем $http клиента для удаления задачи по её id
                         this.$http.delete('/tasks/' + this.tasks[index].id).success(function(response) {
                             this.tasks.splice(index, 1)
                             console.log("Task deleted!")
